@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Phones · Homelab Hub{% endblock %}
+{% block content %}
+{% if message %}<p class="notice">{{ message }}</p>{% endif %}
+<h1>Phones</h1>
+<p class="muted">Each paired phone gets its own token. It can only <em>read</em> the dashboard and never sees your API keys or passwords.</p>
+
+{% if error %}<div class="errors">{{ error }}</div>{% endif %}
+
+<section class="card">
+  <h2 class="flush">Pair a new phone</h2>
+  <form method="post" action="/admin/phones/pair" class="form">
+    <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+    <label>Hub address for the phone
+      <input name="hub_url" value="{{ hub_url }}" required>
+    </label>
+    <small class="help">The address your phone uses to reach this Hub, e.g. its LAN or Tailscale IP: http://192.168.1.50:8080</small>
+    <div class="buttons"><button type="submit">Create pairing code</button></div>
+  </form>
+</section>
+
+<h2>Paired phones</h2>
+{% if not devices %}
+<p class="empty">No phones paired yet.</p>
+{% else %}
+<ul class="service-list">
+  {% for d in devices %}
+  <li class="service phone">
+    <div class="info">
+      <strong>{{ d.name }}</strong>
+      <small class="muted">Paired {{ d.created_at }} UTC · Last seen {{ d.last_seen_at or 'never' }}{% if d.last_seen_at %} UTC{% endif %}</small>
+    </div>
+    <div class="actions">
+      <form method="post" action="/admin/phones/{{ d.id }}/revoke" class="inline"
+            onsubmit="return confirm('Remove this phone? It will need to be paired again.');">
+        <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+        <button type="submit" class="danger">Remove</button>
+      </form>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

@@ -130,6 +130,13 @@ form.inline { display: inline; margin: 0; }
 .type-card { display: flex; flex-direction: column; gap: 4px; color: var(--text); text-decoration: none; }
 .type-card:hover { border-color: var(--accent); }
 
+/* Phones / pairing */
+.flush { margin-top: 0; }
+.service.phone { grid-template-columns: 1fr auto; }
+.pair-card { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; margin-bottom: 16px; }
+.qr { background: #fff; border-radius: 8px; padding: 4px; image-rendering: pixelated; }
+.pair-code { font: 700 2rem/1.2 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0.15em; margin: 4px 0; }
+
 @media (max-width: 600px) {
   .service { grid-template-columns: 1fr; }
   .service .actions { justify-content: flex-start; }

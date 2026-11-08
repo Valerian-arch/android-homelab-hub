@@ -1,0 +1,19 @@
+<details class="details">
+  <summary>qBittorrent instances</summary>
+  <table class="mini">
+    <thead><tr><th>Instance</th><th>Status</th><th>Download</th><th>Upload</th></tr></thead>
+    <tbody>
+      {% for i in r.data.instances %}
+      <tr>
+        <td>{{ i.name }}</td>
+        <td>
+          {% if i.connected %}<span class="dot up"></span> connected{% if i.connection and i.connection != 'connected' %} ({{ i.connection }}){% endif %}
+          {% else %}<span class="dot down"></span> disconnected{% if i.error %}<br><small class="problem">{{ i.error }}</small>{% endif %}{% endif %}
+        </td>
+        <td>{{ i.download_speed }}</td>
+        <td>{{ i.upload_speed }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</details>

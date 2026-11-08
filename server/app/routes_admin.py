@@ -5,7 +5,9 @@ from __future__ import annotations
 import asyncio
 import hmac
 from typing import Any
+from urllib.parse import urlencode, urlsplit
 
+import segno
 from cryptography.fernet import InvalidToken
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse, Response
@@ -13,7 +15,8 @@ from starlette.datastructures import FormData
 
 from .auth import SESSION_COOKIE, Session, validate_new_password
 from .crypto import hash_password, verify_password
-from .forms import default_config, parse_service_form
+from .devices import PAIRING_MINUTES
+from .forms import default_config, is_http_url, parse_service_form
 from .integrations import REGISTRY, Integration
 from .services import Service
 
@@ -287,6 +290,58 @@ async def delete_service(request: Request, service_id: int, session: Session = D
     request.app.state.store.delete(service.id)
     request.app.state.poller.forget(service.id)
     return redirect("/admin?msg=deleted")
+
+
+# --- phones ------------------------------------------------------------------------
+
+PHONE_MESSAGES = {"revoked": "Phone removed. Its token no longer works."}
+LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1", "0.0.0.0")
+
+
+def default_hub_url(request: Request) -> str:
+    saved = request.app.state.devices.get_setting("hub_url")
+    return saved or str(request.base_url).rstrip("/")
+
+
+@router.get("/admin/phones")
+def phones_page(request: Request, session: Session = Depends(require_session)) -> Response:
+    return render(
+        request, "phones.html",
+        session=session,
+        devices=request.app.state.devices.list(),
+        hub_url=default_hub_url(request),
+        message=PHONE_MESSAGES.get(request.query_params.get("msg", "")),
+        error=None,
+    )
+
+
+@router.post("/admin/phones/pair")
+async def pair_phone(request: Request, session: Session = Depends(require_session)) -> Response:
+    form = await csrf_form(request, session)
+    devices = request.app.state.devices
+    hub_url = str(form.get("hub_url") or "").strip().rstrip("/")
+    if not is_http_url(hub_url):
+        return render(
+            request, "phones.html", status_code=400,
+            session=session, devices=devices.list(), hub_url=hub_url, message=None,
+            error="Enter the Hub address your phone will use, starting with http:// or https://.",
+        )
+    devices.set_setting("hub_url", hub_url)
+    code, expires = devices.create_pairing_code()
+    pair_uri = "homelabhub://pair?" + urlencode({"url": hub_url, "code": code})
+    qr = segno.make(pair_uri, error="m").svg_data_uri(scale=6, border=2, dark="#000000", light="#ffffff")
+    return render(
+        request, "pair.html",
+        session=session, code=code, expires=expires, hub_url=hub_url, qr=qr,
+        minutes=PAIRING_MINUTES, warn_local=urlsplit(hub_url).hostname in LOCAL_HOSTS,
+    )
+
+
+@router.post("/admin/phones/{device_id}/revoke")
+async def revoke_phone(request: Request, device_id: int, session: Session = Depends(require_session)) -> Response:
+    await csrf_form(request, session)
+    request.app.state.devices.revoke(device_id)
+    return redirect("/admin/phones?msg=revoked")
 
 
 @router.post("/admin/services/{service_id}/test")

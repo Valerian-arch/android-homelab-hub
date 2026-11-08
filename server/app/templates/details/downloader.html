@@ -1,0 +1,38 @@
+<details class="details">
+  <summary>Downloads</summary>
+
+  <p class="muted">
+    {% if r.data.paused %}Paused{% else %}↓ {{ r.data.download_speed }}{% if r.data.upload_speed %} ↑ {{ r.data.upload_speed }}{% endif %}{% endif %}
+    {% if r.data.timeleft %} · {{ r.data.timeleft }} left{% endif %}
+    {% if r.data.connection %} · {{ r.data.connection }}{% endif %}
+    {% if r.data.disk_free_gb %} · {{ r.data.disk_free_gb }} GB free{% endif %}
+    {% if r.data.version %} · v{{ r.data.version }}{% endif %}
+  </p>
+
+  <table class="mini">
+    <thead><tr><th>Queue{% if r.data.queue_total > r.data.queue|length %} (first {{ r.data.queue|length }} of {{ r.data.queue_total }}){% endif %}</th><th>Status</th><th>Progress</th><th>Speed</th><th>Time left</th></tr></thead>
+    <tbody>
+      {% if not r.data.queue %}<tr><td colspan="5" class="muted">Nothing downloading.</td></tr>{% endif %}
+      {% for q in r.data.queue %}
+      <tr>
+        <td>{{ q.name }}{% if q.category %} <small class="muted">{{ q.category }}</small>{% endif %}</td>
+        <td>{{ q.status }}</td>
+        <td>{{ q.progress }}%</td>
+        <td>{{ q.speed or '-' }}</td>
+        <td>{{ q.timeleft or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if r.data.failed %}
+  <table class="mini">
+    <thead><tr><th>{{ r.data.failed_label }} ({{ r.data.failed_total }})</th><th>Reason</th></tr></thead>
+    <tbody>
+      {% for f in r.data.failed %}
+      <tr><td>{{ f.name }}</td><td><small class="problem">{{ f.reason }}</small></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</details>

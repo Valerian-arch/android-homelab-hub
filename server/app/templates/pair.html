@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Pair a phone · Homelab Hub{% endblock %}
+{% block content %}
+<h1>Pair a phone</h1>
+
+{% if warn_local %}
+<div class="errors">
+  <strong>{{ hub_url }}</strong> only works on this computer. A phone can't reach it.
+  Go back and enter this machine's LAN or Tailscale address instead.
+</div>
+{% endif %}
+
+<section class="card pair-card">
+  <img class="qr" src="{{ qr }}" alt="Pairing QR code" width="240" height="240">
+  <div>
+    <p>In the Homelab Hub app, tap <strong>Pair with Hub</strong> and scan this code.</p>
+    <p>Or enter it manually:</p>
+    <p class="pair-code">{{ code }}</p>
+    <p class="muted">Hub address: {{ hub_url }}<br>
+      Works once and expires in {{ minutes }} minutes (at {{ expires.strftime('%H:%M') }} UTC).</p>
+  </div>
+</section>
+
+<div class="buttons"><a class="button" href="/admin/phones">Done</a></div>
+{% endblock %}
