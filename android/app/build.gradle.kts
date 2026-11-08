@@ -13,15 +13,16 @@ android {
         applicationId = "io.github.valerianarch.homelabhub"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     // Release signing: the key comes from environment variables (set by the GitHub
     // "Android release" workflow from repository secrets). It is never stored in the repo.
-    // Without these variables, release builds are simply unsigned; debug builds are unaffected.
+    // Without these variables (local builds), release builds are signed with your debug key so you
+    // can install and test them on your own phone. Official releases always use the real key.
     val keystorePath = providers.environmentVariable("HUB_KEYSTORE_PATH").orNull
     signingConfigs {
         create("release") {
@@ -36,12 +37,16 @@ android {
 
     buildTypes {
         release {
-            if (keystorePath != null) {
-                signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (keystorePath != null) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
             }
+            // R8 optimization is OFF for now: v0.1.0 (optimized) crashed on launch while the
+            // identical debug build worked. Re-enable only after a crash log shows what R8 removed
+            // and the right keep rules are in src/main/keepRules/.
             optimization {
-                enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
+                enable = false
             }
         }
     }
