@@ -19,8 +19,26 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Release signing: the key comes from environment variables (set by the GitHub
+    // "Android release" workflow from repository secrets). It is never stored in the repo.
+    // Without these variables, release builds are simply unsigned; debug builds are unaffected.
+    val keystorePath = providers.environmentVariable("HUB_KEYSTORE_PATH").orNull
+    signingConfigs {
+        create("release") {
+            if (keystorePath != null) {
+                storeFile = file(keystorePath)
+                storePassword = providers.environmentVariable("HUB_KEYSTORE_PASSWORD").orNull
+                keyAlias = providers.environmentVariable("HUB_KEY_ALIAS").orNull
+                keyPassword = providers.environmentVariable("HUB_KEY_PASSWORD").orNull
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (keystorePath != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             optimization {
                 enable = true
                 packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")

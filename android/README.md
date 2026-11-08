@@ -18,4 +18,16 @@ Kotlin + Jetpack Compose. Shows your Hub's dashboard on your phone.
 
 Unit tests: right-click `app/src/test` → **Run Tests**, or run `./gradlew testDebugUnitTest`.
 
+## Releases
+
+Official APKs are built and signed by GitHub Actions ([`android-release.yml`](../.github/workflows/android-release.yml))
+and attached to the repository's **Releases** with a `.sha256` checksum. To publish a version:
+
+1. Bump `versionCode` (+1) and `versionName` in `app/build.gradle.kts`, then commit.
+2. `git tag v0.1.0 && git push origin v0.1.0`
+
+The signing key lives only in the maintainer's backup and in the repository's Actions secrets.
+APKs you build yourself are signed with your own debug key. Android won't install one over the other,
+so uninstall first when switching between a self-built APK and an official release.
+
 See [../docs/API.md](../docs/API.md) for the Hub API the app uses.
