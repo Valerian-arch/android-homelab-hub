@@ -1,0 +1,54 @@
+# ============================================================
+# NEVER COMMIT SECRETS. Real config, keys, and databases stay
+# on the server. Only *.example files belong in this repo.
+# ============================================================
+
+# --- Secrets & runtime config (server) ---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets/
+config/
+!config.example/
+data/
+*.db
+*.sqlite
+*.sqlite3
+docker-compose.yml
+docker-compose.override.yml
+!docker-compose.example.yml
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+
+# --- Android / Gradle ---
+.gradle/
+build/
+local.properties
+*.apk
+*.aab
+*.jks
+*.keystore
+captures/
+.externalNativeBuild/
+.cxx/
+
+# --- IDEs / editors ---
+.idea/
+*.iml
+.vscode/
+
+# --- OS / tools ---
+.DS_Store
+Thumbs.db
+.obsidian/
