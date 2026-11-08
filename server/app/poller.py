@@ -30,6 +30,14 @@ def describe_error(exc: BaseException) -> str:
     return (str(exc) or type(exc).__name__)[:200]
 
 
+def redact(message: str, secrets: dict[str, str]) -> str:
+    """Safety net: remove any saved secret value that ended up in a message."""
+    for value in secrets.values():
+        if isinstance(value, str) and len(value) >= 4:
+            message = message.replace(value, "***")
+    return message
+
+
 class Poller:
     def __init__(self, store: ServiceStore, box: SecretBox, interval: int, concurrency: int = 20) -> None:
         self.store = store
@@ -59,9 +67,11 @@ class Poller:
         except InvalidToken:
             return CheckResult("unknown", "Saved credentials can't be decrypted (secret key changed?). Re-enter them.")
         try:
-            return await integration.check(service.config, secrets)
+            result = await integration.check(service.config, secrets)
         except Exception as exc:  # noqa: BLE001 - any failure means "down"
-            return CheckResult("down", describe_error(exc))
+            result = CheckResult("down", describe_error(exc))
+        result.message = redact(result.message, secrets)
+        return result
 
     async def check_and_store(self, service: Service) -> CheckResult:
         async with self._semaphore:

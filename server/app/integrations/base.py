@@ -46,6 +46,8 @@ class Integration(ABC):
     label: ClassVar[str]
     description: ClassVar[str] = ""
     fields: ClassVar[tuple[Field, ...]] = ()
+    default_name: ClassVar[str] = ""
+    """Pre-filled service name on the add form (editable). Empty for generic checks."""
     detail_template: ClassVar[str | None] = None
     """Optional Jinja template (under templates/) that renders ``CheckResult.data``."""
 

@@ -19,12 +19,39 @@
       </label>
       <small class="help">Shown in the app and on this page.</small>
     </div>
+    {% set is_new_category = common.category and common.category not in categories %}
     <div class="field">
       <label>Category
-        <input name="category" value="{{ common.category }}" maxlength="50" placeholder="e.g. Media, Infrastructure">
+        <select name="category_choice" id="category_choice">
+          <option value="" {% if not common.category %}selected{% endif %}>No category</option>
+          {% for c in categories %}
+          <option value="{{ c }}" {% if c == common.category %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+          <option value="__new__" {% if is_new_category %}selected{% endif %}>+ Add new category…</option>
+        </select>
       </label>
+      <div id="new_category_field">
+        <label>New category name
+          <input name="category_new" id="category_new" maxlength="50"
+                 value="{{ common.category if is_new_category else '' }}" placeholder="e.g. Media, Infrastructure">
+        </label>
+      </div>
       <small class="help">Services with the same category are grouped together.</small>
     </div>
+    <script>
+      (function () {
+        var select = document.getElementById("category_choice");
+        var field = document.getElementById("new_category_field");
+        var input = document.getElementById("category_new");
+        function update(focus) {
+          var isNew = select.value === "__new__";
+          field.hidden = !isNew;
+          if (isNew && focus) input.focus();
+        }
+        select.addEventListener("change", function () { update(true); });
+        update(false);
+      })();
+    </script>
     <div class="field">
       <label>Link URL
         <input name="link_url" value="{{ common.link_url }}" placeholder="https://…">

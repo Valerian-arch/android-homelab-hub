@@ -48,6 +48,14 @@ class ServiceStore:
         with self.db.connect() as conn:
             return [_from_row(r) for r in conn.execute(sql).fetchall()]
 
+    def categories(self) -> list[str]:
+        """Distinct non-empty categories already in use, for the form dropdown."""
+        with self.db.connect() as conn:
+            rows = conn.execute(
+                "SELECT DISTINCT category FROM services WHERE category != '' ORDER BY category COLLATE NOCASE"
+            ).fetchall()
+        return [r["category"] for r in rows]
+
     def get(self, service_id: int) -> Service | None:
         with self.db.connect() as conn:
             row = conn.execute("SELECT * FROM services WHERE id = ?", (service_id,)).fetchone()

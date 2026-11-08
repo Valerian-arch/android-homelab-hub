@@ -35,6 +35,14 @@ def render(request: Request, template: str, status_code: int = 200, **context: A
     )
 
 
+def render_form(request: Request, status_code: int = 200, **context: Any) -> Response:
+    """Render the add/edit service form with the existing categories for the dropdown."""
+    return render(
+        request, "service_form.html", status_code=status_code,
+        categories=request.app.state.store.categories(), **context,
+    )
+
+
 def redirect(url: str) -> RedirectResponse:
     return RedirectResponse(url, status_code=303)
 
@@ -192,12 +200,12 @@ def new_service(
     if not type_:
         return render(request, "choose_type.html", session=session, integrations=list(REGISTRY.values()))
     cls = get_integration_or_404(type_)
-    return render(
-        request, "service_form.html",
+    return render_form(
+        request,
         session=session, cls=cls, service=None,
         action=f"/admin/services/new?type={cls.type}",
         values=default_config(cls),
-        common={"name": "", "category": "", "link_url": "", "enabled": True},
+        common={"name": cls.default_name, "category": "", "link_url": "", "enabled": True},
         saved_secrets=set(), errors=[],
     )
 
@@ -212,8 +220,8 @@ async def create_service(
     form = await csrf_form(request, session)
     parsed = parse_service_form(cls, form, existing_secrets={})
     if parsed.errors:
-        return render(
-            request, "service_form.html", status_code=400,
+        return render_form(
+            request, status_code=400,
             session=session, cls=cls, service=None,
             action=f"/admin/services/new?type={cls.type}",
             values=parsed.config, common=parsed.common, saved_secrets=set(), errors=parsed.errors,
@@ -234,8 +242,8 @@ def edit_service(request: Request, service_id: int, session: Session = Depends(r
     service = get_service_or_404(request, service_id)
     cls = get_integration_or_404(service.type)
     secrets, warning = existing_secrets(request, service)
-    return render(
-        request, "service_form.html",
+    return render_form(
+        request,
         session=session, cls=cls, service=service,
         action=f"/admin/services/{service.id}/edit",
         values={**default_config(cls), **service.config},
@@ -253,8 +261,8 @@ async def update_service(request: Request, service_id: int, session: Session = D
     secrets, _warning = existing_secrets(request, service)
     parsed = parse_service_form(cls, form, secrets)
     if parsed.errors:
-        return render(
-            request, "service_form.html", status_code=400,
+        return render_form(
+            request, status_code=400,
             session=session, cls=cls, service=service,
             action=f"/admin/services/{service.id}/edit",
             values=parsed.config, common=parsed.common, saved_secrets=set(secrets), errors=parsed.errors,

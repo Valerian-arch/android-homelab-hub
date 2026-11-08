@@ -1,0 +1,29 @@
+<details class="details">
+  <summary>Indexers and health</summary>
+
+  {% if r.data.health %}
+  <ul class="health">
+    {% for h in r.data.health %}
+    <li><span class="dot {{ 'down' if h.level == 'error' else 'degraded' }}"></span> {{ h.message }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <table class="mini">
+    <thead><tr><th>Indexer</th><th>Type</th><th>Status</th></tr></thead>
+    <tbody>
+      {% if not r.data.indexers %}<tr><td colspan="3" class="muted">No indexers configured.</td></tr>{% endif %}
+      {% for ix in r.data.indexers %}
+      <tr>
+        <td>{{ ix.name }}</td>
+        <td>{{ ix.protocol }}</td>
+        <td>
+          {% if ix.failing %}<span class="dot down"></span> failing (paused until {{ ix.disabled_until[:16]|replace('T', ' ') }} UTC)
+          {% elif ix.enabled %}<span class="dot up"></span> enabled
+          {% else %}<span class="dot unknown"></span> disabled{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</details>

@@ -80,6 +80,7 @@ def summarize_resources(resources: list[dict[str, Any]]) -> tuple[str, str, dict
 class ProxmoxIntegration(Integration):
     type = "proxmox"
     label = "Proxmox VE"
+    default_name = "Proxmox"
     description = "Nodes and VMs/LXCs with CPU and RAM usage. One entry covers a whole cluster."
     detail_template = "details/proxmox.html"
     fields = (

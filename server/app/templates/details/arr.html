@@ -1,0 +1,40 @@
+<details class="details">
+  <summary>Queue, upcoming, and health</summary>
+
+  {% if r.data.health %}
+  <ul class="health">
+    {% for h in r.data.health %}
+    <li><span class="dot {{ 'down' if h.level == 'error' else 'degraded' }}"></span> {{ h.message }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <table class="mini">
+    <thead><tr><th>Queue{% if r.data.queue_total > r.data.queue|length %} (first {{ r.data.queue|length }} of {{ r.data.queue_total }}){% endif %}</th><th>Status</th><th>Progress</th><th>Time left</th></tr></thead>
+    <tbody>
+      {% if not r.data.queue %}<tr><td colspan="4" class="muted">Nothing in the queue.</td></tr>{% endif %}
+      {% for q in r.data.queue %}
+      <tr>
+        <td>{{ q.title }}{% if q.problem %}<br><small class="problem">⚠ {{ q.problem }}</small>{% endif %}</td>
+        <td>{{ q.state or q.status }}</td>
+        <td>{{ q.progress }}%</td>
+        <td>{{ q.timeleft or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="mini">
+    <thead><tr><th>Upcoming</th><th>When (UTC)</th><th></th></tr></thead>
+    <tbody>
+      {% if not r.data.upcoming %}<tr><td colspan="3" class="muted">Nothing upcoming in this window.</td></tr>{% endif %}
+      {% for u in r.data.upcoming %}
+      <tr>
+        <td>{{ u.title }}</td>
+        <td>{{ u.kind }} {{ u.date[:10] }} {{ u.date[11:16] }}</td>
+        <td>{% if u.has_file %}<small class="muted">downloaded</small>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</details>

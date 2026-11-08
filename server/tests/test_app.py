@@ -103,6 +103,29 @@ def test_validation_error_shown(client):
     assert "must start with http://" in response.text
 
 
+def test_name_autofill_and_category_dropdown(client, app, csrf):
+    # Integration name is pre-filled; generic checks stay blank.
+    assert 'name="name" value="Sonarr"' in client.get("/admin/services/new?type=sonarr").text
+    assert 'name="name" value=""' in client.get("/admin/services/new?type=http").text
+
+    base = {"csrf_token": csrf, "host": "127.0.0.1", "port": "9", "timeout": "1"}
+    # "+ Add new category" with a name creates it...
+    client.post("/admin/services/new?type=tcp",
+                data={**base, "name": "A", "category_choice": "__new__", "category_new": "Media"})
+    # ...after which it appears in the dropdown and can be picked.
+    form_page = client.get("/admin/services/new?type=tcp").text
+    assert '<option value="Media"' in form_page
+    client.post("/admin/services/new?type=tcp", data={**base, "name": "B", "category_choice": "Media"})
+    # "+ Add new" without a name is an error.
+    bad = client.post("/admin/services/new?type=tcp",
+                      data={**base, "name": "C", "category_choice": "__new__", "category_new": ""})
+    assert bad.status_code == 400 and "Enter a name for the new category" in bad.text
+
+    services = {s.name: s.category for s in app.state.store.list()}
+    assert services == {"A": "Media", "B": "Media"}
+    assert app.state.store.categories() == ["Media"]
+
+
 def test_test_and_delete_service(client, app):
     csrf = setup_and_login(client)
     client.post(

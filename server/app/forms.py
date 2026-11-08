@@ -40,13 +40,30 @@ def _range_error(label: str, lo: int | None, hi: int | None) -> str:
     return f"{label} must be at most {hi}."
 
 
+NEW_CATEGORY = "__new__"
+
+
+def _parse_category(form: Mapping[str, Any], errors: list[str]) -> str:
+    """Category comes from the dropdown (existing or "+ new") or a plain text field."""
+    if "category_choice" not in form:
+        return _text(form, "category")  # plain text field (API clients, older forms)
+    choice = _text(form, "category_choice")
+    new = _text(form, "category_new")
+    if choice == NEW_CATEGORY:
+        if not new:
+            errors.append("Enter a name for the new category, or pick an existing one.")
+        return new
+    # Without JavaScript the "new" box is always visible; honour it if no category was picked.
+    return choice or new
+
+
 def parse_service_form(
     cls: type[Integration], form: Mapping[str, Any], existing_secrets: dict[str, str]
 ) -> ParsedForm:
     errors: list[str] = []
 
     name = _text(form, "name")
-    category = _text(form, "category")
+    category = _parse_category(form, errors)
     link_url = _text(form, "link_url")
     if not name:
         errors.append("Name is required.")

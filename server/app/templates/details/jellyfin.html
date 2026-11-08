@@ -1,0 +1,27 @@
+<details class="details">
+  <summary>Streams and library</summary>
+
+  <p class="muted">
+    {{ r.data.server }}{% if r.data.version %} · v{{ r.data.version }}{% endif %}
+    · {{ '{:,}'.format(r.data.counts.movies) }} movies
+    · {{ '{:,}'.format(r.data.counts.series) }} series
+    · {{ '{:,}'.format(r.data.counts.episodes) }} episodes
+    {% if r.data.counts.songs %} · {{ '{:,}'.format(r.data.counts.songs) }} songs{% endif %}
+  </p>
+
+  <table class="mini">
+    <thead><tr><th>Now playing</th><th>User</th><th>Device</th><th>Progress</th><th>Playback</th></tr></thead>
+    <tbody>
+      {% if not r.data.streams %}<tr><td colspan="5" class="muted">Nobody is watching right now.</td></tr>{% endif %}
+      {% for s in r.data.streams %}
+      <tr>
+        <td>{{ s.title }}</td>
+        <td>{{ s.user }}</td>
+        <td>{{ s.device }}{% if s.client %} <small class="muted">{{ s.client }}</small>{% endif %}</td>
+        <td>{{ s.progress }}%{% if s.paused %} <small class="muted">paused</small>{% endif %}</td>
+        <td>{% if s.transcoding %}<span class="problem">Transcode</span>{% else %}{{ s.method }}{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</details>
