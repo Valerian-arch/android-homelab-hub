@@ -178,6 +178,7 @@ def admin_home(request: Request, session: Session = Depends(require_session)) ->
         groups=group_services(services),
         results=request.app.state.poller.results,
         labels={t: cls.label for t, cls in REGISTRY.items()},
+        detail_templates={t: cls.detail_template for t, cls in REGISTRY.items() if cls.detail_template},
         message=MESSAGES.get(request.query_params.get("msg", "")),
     )
 

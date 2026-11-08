@@ -58,7 +58,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.poller = poller
     app.state.auth = AuthStore(db, settings.session_hours)
     app.state.login_limiter = LoginLimiter()
-    app.state.templates = Jinja2Templates(directory=BASE_DIR / "templates")
+    templates = Jinja2Templates(directory=BASE_DIR / "templates")
+    templates.env.filters["gib"] = lambda n: f"{(n or 0) / 1024**3:.1f}"
+    app.state.templates = templates
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):  # type: ignore[no-untyped-def]

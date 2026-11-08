@@ -38,6 +38,8 @@
           {{ r.message }}{% if r.latency_ms is not none %} · {{ r.latency_ms }} ms{% endif %}
           · {{ r.checked_at.strftime('%H:%M:%S') }} UTC
         </small>
+        {% set detail = detail_templates.get(svc.type) %}
+        {% if detail and r.data %}{% include detail %}{% endif %}
         {% endif %}
       </div>
       <div class="actions">

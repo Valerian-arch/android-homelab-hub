@@ -1,0 +1,34 @@
+<details class="details">
+  <summary>Nodes and guests</summary>
+  <table class="mini">
+    <thead><tr><th>Node</th><th>Status</th><th>CPU</th><th>RAM</th></tr></thead>
+    <tbody>
+      {% for n in r.data.nodes %}
+      <tr>
+        <td>{{ n.name }}</td>
+        <td><span class="dot {{ 'up' if n.status == 'online' else 'down' }}"></span> {{ n.status }}</td>
+        <td>{{ n.cpu_pct }}%</td>
+        <td>{% if n.mem_total %}{{ n.mem_used|gib }} / {{ n.mem_total|gib }} GiB ({{ n.mem_pct }}%){% else %}-{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <table class="mini">
+    <thead><tr><th>ID</th><th>Name</th><th>Node</th><th>Status</th><th>CPU</th><th>RAM</th></tr></thead>
+    <tbody>
+      {% if not r.data.guests %}
+      <tr><td colspan="6" class="muted">No VMs or containers visible to this token.</td></tr>
+      {% endif %}
+      {% for g in r.data.guests %}
+      <tr>
+        <td>{{ g.vmid }} <small class="muted">{{ g.type }}</small></td>
+        <td>{{ g.name }}</td>
+        <td>{{ g.node }}</td>
+        <td><span class="dot {{ 'up' if g.status == 'running' else 'unknown' }}"></span> {{ g.status }}</td>
+        <td>{{ g.cpu_pct }}%</td>
+        <td>{% if g.mem_total %}{{ g.mem_used|gib }} / {{ g.mem_total|gib }} GiB{% else %}-{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</details>

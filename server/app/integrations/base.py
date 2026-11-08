@@ -34,7 +34,7 @@ class Field:
 
 @dataclass
 class CheckResult:
-    status: str  # "up" | "down" | "unknown"
+    status: str  # "up" | "degraded" | "down" | "unknown"
     message: str = ""
     latency_ms: int | None = None
     checked_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -46,6 +46,8 @@ class Integration(ABC):
     label: ClassVar[str]
     description: ClassVar[str] = ""
     fields: ClassVar[tuple[Field, ...]] = ()
+    detail_template: ClassVar[str | None] = None
+    """Optional Jinja template (under templates/) that renders ``CheckResult.data``."""
 
     @classmethod
     def config_fields(cls) -> tuple[Field, ...]:

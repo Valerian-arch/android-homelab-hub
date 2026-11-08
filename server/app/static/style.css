@@ -9,6 +9,7 @@
   --up: #1f9d55;
   --down: #d64545;
   --unknown: #9aa5b1;
+  --degraded: #d69e2e;
   --danger: #c53030;
   --notice-bg: #e8f1fd;
   --error-bg: #fdecec;
@@ -25,6 +26,7 @@
     --up: #38c172;
     --down: #ef5753;
     --unknown: #6b7682;
+    --degraded: #ecc94b;
     --danger: #f56565;
     --notice-bg: #1d2c44;
     --error-bg: #3a1f22;
@@ -106,6 +108,16 @@ form.inline { display: inline; margin: 0; }
 .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; }
 .dot.up { background: var(--up); }
 .dot.down { background: var(--down); }
+.dot.degraded { background: var(--degraded); }
+
+/* Integration details (e.g. Proxmox nodes/guests) */
+.details { margin-top: 6px; font-size: 0.9rem; }
+.details summary { cursor: pointer; color: var(--accent); }
+.details .mini { display: block; overflow-x: auto; }
+.mini { border-collapse: collapse; margin-top: 8px; width: 100%; }
+.mini th, .mini td { text-align: left; padding: 3px 10px 3px 0; white-space: nowrap; }
+.mini th { color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--border); }
+.mini .dot { width: 8px; height: 8px; }
 .dot.unknown, .dot.disabled { background: var(--unknown); }
 
 .type-card { display: flex; flex-direction: column; gap: 4px; color: var(--text); text-decoration: none; }
