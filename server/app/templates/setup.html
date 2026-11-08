@@ -1,19 +1,30 @@
 {% extends "base.html" %}
-{% block title %}First-time setup · Homelab Hub{% endblock %}
+{% block title %}Change password · Homelab Hub{% endblock %}
 {% block content %}
 <section class="card narrow">
-  <h1>Welcome to Homelab Hub</h1>
-  <p>Create the admin password. You will use it to add services and pair phones.</p>
+  {% if forced %}
+  <h1>Choose your admin password</h1>
+  <p>You logged in with the temporary password from the log. Pick your own password to continue.</p>
+  {% else %}
+  <h1>Change password</h1>
+  {% endif %}
   {% if error %}<div class="errors">{{ error }}</div>{% endif %}
-  <form method="post" action="/setup" class="form">
-    <label>Admin password
-      <input type="password" name="password" autocomplete="new-password" minlength="12" required autofocus>
+  <form method="post" action="/account/password" class="form">
+    <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+    <label>{% if forced %}Temporary password{% else %}Current password{% endif %}
+      <input type="password" name="current_password" autocomplete="current-password" required autofocus>
     </label>
-    <label>Confirm password
+    <label>New password
+      <input type="password" name="password" autocomplete="new-password" minlength="12" required>
+    </label>
+    <label>Confirm new password
       <input type="password" name="confirm" autocomplete="new-password" minlength="12" required>
     </label>
-    <small class="help">At least 12 characters. A password manager is a good idea.</small>
-    <div class="buttons"><button type="submit">Create admin</button></div>
+    <small class="help">At least 12 characters. A password manager is a good idea. Other browsers will be logged out.</small>
+    <div class="buttons">
+      <button type="submit">Save password</button>
+      {% if not forced %}<a class="button secondary" href="/account">Cancel</a>{% endif %}
+    </div>
   </form>
 </section>
 {% endblock %}

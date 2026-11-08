@@ -9,7 +9,7 @@ from typing import Any
 import httpx
 
 from .base import CheckResult, Field, Integration
-from .util import human_eta, human_speed
+from .util import human_eta, human_speed, make_client
 
 QUEUE_LIMIT = 50
 FAILED_LIMIT = 5
@@ -55,13 +55,7 @@ class NzbgetIntegration(Integration):
         username = str(config.get("username") or "").strip()
         auth = httpx.BasicAuth(username, secrets.get("password", "")) if username else None
         start = time.perf_counter()
-        async with httpx.AsyncClient(
-            base_url=str(config["url"]).rstrip("/"),
-            auth=auth,
-            verify=bool(config.get("verify_tls", True)),
-            timeout=float(config.get("timeout") or 10),
-            transport=self._transport,
-        ) as client:
+        async with make_client(config, transport=self._transport, base_url=str(config["url"]).rstrip("/"), auth=auth) as client:
             try:
                 status, groups, history, version = await asyncio.gather(
                     _rpc(client, "status"),

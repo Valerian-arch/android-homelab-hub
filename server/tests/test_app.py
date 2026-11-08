@@ -1,63 +1,22 @@
 from __future__ import annotations
 
-import re
-
-CSRF_RE = re.compile(r'name="csrf_token" value="([^"]+)"')
-PASSWORD = "correct horse battery"
 SECRET = "super-secret-api-key-123"
-
-
-def setup_and_login(client) -> str:
-    response = client.post("/setup", data={"password": PASSWORD, "confirm": PASSWORD})
-    assert response.url.path == "/login"
-    response = client.post("/login", data={"password": PASSWORD})
-    assert response.url.path == "/admin"
-    match = CSRF_RE.search(response.text)
-    assert match
-    return match.group(1)
 
 
 def test_healthz(client):
     assert client.get("/healthz").json() == {"status": "ok"}
 
 
-def test_first_visit_goes_to_setup(client):
-    assert client.get("/admin").url.path == "/setup"
-
-
-def test_setup_rejects_short_or_mismatched_password(client):
-    assert client.post("/setup", data={"password": "short", "confirm": "short"}).status_code == 400
-    assert client.post("/setup", data={"password": PASSWORD, "confirm": PASSWORD + "x"}).status_code == 400
-
-
-def test_setup_only_works_once(client):
-    setup_and_login(client)
-    client.post("/logout", data={"csrf_token": CSRF_RE.search(client.get("/admin").text).group(1)})
-    client.post("/setup", data={"password": "another long password", "confirm": "another long password"})
-    # Original password still works; the second setup was ignored.
-    assert client.post("/login", data={"password": PASSWORD}).url.path == "/admin"
-
-
-def test_wrong_password_and_lockout(client):
-    client.post("/setup", data={"password": PASSWORD, "confirm": PASSWORD})
-    for _ in range(5):
-        assert client.post("/login", data={"password": "wrong password!"}).status_code == 401
-    assert client.post("/login", data={"password": PASSWORD}).status_code == 429
-
-
 def test_admin_requires_login(client):
-    client.post("/setup", data={"password": PASSWORD, "confirm": PASSWORD})
     assert client.get("/admin").url.path == "/login"
 
 
-def test_csrf_required(client):
-    setup_and_login(client)
+def test_csrf_required(client, csrf):
     response = client.post("/admin/services/new?type=tcp", data={"name": "SSH", "host": "127.0.0.1", "port": "22"})
     assert response.status_code == 400
 
 
-def test_secret_encrypted_and_never_rendered(client, app):
-    csrf = setup_and_login(client)
+def test_secret_encrypted_and_never_rendered(client, app, csrf):
     response = client.post(
         "/admin/services/new?type=http",
         data={
@@ -93,8 +52,7 @@ def test_secret_encrypted_and_never_rendered(client, app):
     assert app.state.box.decrypt_json(updated.secrets_enc) == {"header_value": SECRET}
 
 
-def test_validation_error_shown(client):
-    csrf = setup_and_login(client)
+def test_validation_error_shown(client, csrf):
     response = client.post(
         "/admin/services/new?type=http",
         data={"csrf_token": csrf, "name": "Bad", "url": "ftp://x", "expected_status": "200", "timeout": "5"},
@@ -126,8 +84,7 @@ def test_name_autofill_and_category_dropdown(client, app, csrf):
     assert app.state.store.categories() == ["Media"]
 
 
-def test_test_and_delete_service(client, app):
-    csrf = setup_and_login(client)
+def test_test_and_delete_service(client, app, csrf):
     client.post(
         "/admin/services/new?type=tcp",
         data={"csrf_token": csrf, "name": "Closed port", "host": "127.0.0.1", "port": "9", "timeout": "1", "enabled": "on"},

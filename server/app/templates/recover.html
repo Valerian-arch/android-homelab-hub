@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Reset password · Homelab Hub{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <h1>Reset admin password</h1>
+  <p>Enter one of your recovery codes and choose a new password. Each code works once.</p>
+  {% if error %}<div class="errors">{{ error }}</div>{% endif %}
+  <form method="post" action="/recover" class="form" autocomplete="off">
+    <label>Recovery code
+      <input name="code" placeholder="ABCDE-FGHJK" required autofocus>
+    </label>
+    <label>New password
+      <input type="password" name="password" autocomplete="new-password" minlength="12" required>
+    </label>
+    <label>Confirm new password
+      <input type="password" name="confirm" autocomplete="new-password" minlength="12" required>
+    </label>
+    <div class="buttons"><button type="submit">Reset password</button> <a class="button secondary" href="/login">Back</a></div>
+  </form>
+  <p class="muted small-link">No codes left? On the server, run
+    <code>docker exec -it homelab-hub python -m app.admin_cli reset-password</code>.</p>
+</section>
+{% endblock %}

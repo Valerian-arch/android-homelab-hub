@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+from typing import Any
+from urllib.parse import quote, quote_plus
 
 import httpx
 from cryptography.fernet import InvalidToken
@@ -16,26 +18,48 @@ from .services import Service, ServiceStore
 log = logging.getLogger("homelab_hub.poller")
 
 
+MAX_MESSAGE = 300
+MAX_STRING = 500
+MAX_ITEMS = 200
+
+
 def describe_error(exc: BaseException) -> str:
-    """Short, user-facing error text. Never includes credentials."""
+    """User-facing error text (not yet shortened: redact() must run first)."""
     if isinstance(exc, (TimeoutError, httpx.TimeoutException)):
         return "Timed out"
     if isinstance(exc, ConnectionRefusedError):
         return "Connection refused"
     if isinstance(exc, httpx.ConnectError):
-        detail = str(exc)[:160]
+        detail = str(exc)
         return f"Connection failed: {detail}" if detail else "Connection failed"
     if isinstance(exc, OSError):
-        return f"Network error: {exc.strerror or exc}"[:200]
-    return (str(exc) or type(exc).__name__)[:200]
+        return f"Network error: {exc.strerror or exc}"
+    return str(exc) or type(exc).__name__
 
 
 def redact(message: str, secrets: dict[str, str]) -> str:
-    """Safety net: remove any saved secret value that ended up in a message."""
+    """Safety net: remove any saved secret value (plain or URL-encoded) from text.
+
+    Must run BEFORE any shortening, or a cut could leave part of a secret unmatched.
+    """
     for value in secrets.values():
         if isinstance(value, str) and len(value) >= 4:
-            message = message.replace(value, "***")
+            for variant in {value, quote(value, safe=""), quote_plus(value, safe="")}:
+                message = message.replace(variant, "***")
     return message
+
+
+def clean(value: Any, secrets: dict[str, str], max_string: int = MAX_STRING) -> Any:
+    """Redact secrets, then cap the size of everything a service sent back."""
+    if isinstance(value, str):
+        return redact(value, secrets)[:max_string]
+    if isinstance(value, bool) or value is None or isinstance(value, (int, float)):
+        return value
+    if isinstance(value, (list, tuple)):
+        return [clean(v, secrets) for v in list(value)[:MAX_ITEMS]]
+    if isinstance(value, dict):
+        return {str(k)[:100]: clean(v, secrets) for k, v in list(value.items())[:MAX_ITEMS]}
+    return redact(str(value), secrets)[:max_string]
 
 
 class Poller:
@@ -70,7 +94,8 @@ class Poller:
             result = await integration.check(service.config, secrets)
         except Exception as exc:  # noqa: BLE001 - any failure means "down"
             result = CheckResult("down", describe_error(exc))
-        result.message = redact(result.message, secrets)
+        result.message = clean(result.message, secrets, max_string=MAX_MESSAGE)
+        result.data = clean(result.data, secrets)
         return result
 
     async def check_and_store(self, service: Service) -> CheckResult:

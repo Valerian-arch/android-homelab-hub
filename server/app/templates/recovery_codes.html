@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Recovery codes · Homelab Hub{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <h1>Your recovery codes</h1>
+  {% if first_time %}<p class="notice">Password saved.</p>{% endif %}
+  <p>If you forget the admin password, each code can reset it <strong>once</strong>.
+     Save them somewhere safe, like your password manager. <strong>They are shown only now.</strong></p>
+  {% if not first_time %}<p class="muted">Your previous recovery codes no longer work.</p>{% endif %}
+  <ol class="recovery-codes">
+    {% for code in codes %}<li><code>{{ code }}</code></li>{% endfor %}
+  </ol>
+  <div class="buttons"><a class="button" href="/admin">I saved them, continue</a></div>
+</section>
+{% endblock %}

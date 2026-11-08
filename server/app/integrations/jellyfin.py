@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 
 from .base import CheckResult, Field, Integration
+from .util import make_client
 
 TICKS_PER_SECOND = 10_000_000
 
@@ -69,12 +70,10 @@ class JellyfinIntegration(Integration):
     async def check(self, config: dict[str, Any], secrets: dict[str, str]) -> CheckResult:
         token = secrets.get("api_key", "")
         start = time.perf_counter()
-        async with httpx.AsyncClient(
+        async with make_client(
+            config, transport=self._transport,
             base_url=str(config["url"]).rstrip("/"),
             headers={"Authorization": f'MediaBrowser Token="{token}"'},
-            verify=bool(config.get("verify_tls", True)),
-            timeout=float(config.get("timeout") or 10),
-            transport=self._transport,
         ) as client:
             info_resp, sessions_resp, counts_resp = await asyncio.gather(
                 client.get("/System/Info"),

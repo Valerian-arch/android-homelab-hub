@@ -14,14 +14,42 @@ from typing import Any
 import httpx
 
 from .base import CheckResult, Field, Integration
+from .util import make_client
 
 TOKEN_ID_RE = re.compile(r"^[^@!\s]+@[^@!\s]+![A-Za-z][A-Za-z0-9._-]*$")
 
 
-def _pct(used: float | int | None, total: float | int | None) -> float | None:
-    if not used or not total:
-        return 0.0 if total else None
-    return round(100.0 * float(used) / float(total), 1)
+def _num(value: Any) -> float | None:
+    """Numbers from Proxmox, defensively: anything unparsable becomes None."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _int(value: Any) -> int | None:
+    number = _num(value)
+    return int(number) if number is not None else None
+
+
+def _pct(used: float | None, total: float | None) -> float | None:
+    if not total:
+        return None
+    return round(100.0 * (used or 0) / total, 1)
+
+
+def _metrics(item: dict[str, Any]) -> dict[str, Any]:
+    mem, maxmem = _num(item.get("mem")), _num(item.get("maxmem"))
+    return {
+        "status": str(item.get("status") or "unknown"),
+        "cpu_pct": round((_num(item.get("cpu")) or 0.0) * 100, 1),
+        "cpus": _int(item.get("maxcpu")),
+        "mem_used": mem,
+        "mem_total": maxmem,
+        "mem_pct": _pct(mem, maxmem),
+    }
 
 
 def summarize_resources(resources: list[dict[str, Any]]) -> tuple[str, str, dict[str, Any]]:
@@ -29,30 +57,19 @@ def summarize_resources(resources: list[dict[str, Any]]) -> tuple[str, str, dict
     nodes: list[dict[str, Any]] = []
     guests: list[dict[str, Any]] = []
     for item in resources:
+        if not isinstance(item, dict):
+            continue
         kind = item.get("type")
         if kind == "node":
-            nodes.append({
-                "name": item.get("node", "?"),
-                "status": item.get("status", "unknown"),
-                "cpu_pct": round(float(item.get("cpu") or 0) * 100, 1),
-                "cpus": item.get("maxcpu"),
-                "mem_used": item.get("mem"),
-                "mem_total": item.get("maxmem"),
-                "mem_pct": _pct(item.get("mem"), item.get("maxmem")),
-                "uptime": item.get("uptime"),
-            })
+            nodes.append({"name": str(item.get("node") or "?"), **_metrics(item), "uptime": _int(item.get("uptime"))})
         elif kind in ("qemu", "lxc") and not item.get("template"):
+            vmid = _int(item.get("vmid"))
             guests.append({
-                "vmid": item.get("vmid"),
-                "name": item.get("name") or f"{kind}-{item.get('vmid')}",
+                "vmid": vmid,
+                "name": str(item.get("name") or f"{kind}-{vmid}"),
                 "type": "VM" if kind == "qemu" else "LXC",
-                "node": item.get("node", "?"),
-                "status": item.get("status", "unknown"),
-                "cpu_pct": round(float(item.get("cpu") or 0) * 100, 1),
-                "cpus": item.get("maxcpu"),
-                "mem_used": item.get("mem"),
-                "mem_total": item.get("maxmem"),
-                "mem_pct": _pct(item.get("mem"), item.get("maxmem")),
+                "node": str(item.get("node") or "?"),
+                **_metrics(item),
             })
 
     nodes.sort(key=lambda n: n["name"])
@@ -108,11 +125,7 @@ class ProxmoxIntegration(Integration):
         base = str(config["url"]).rstrip("/")
         headers = {"Authorization": f"PVEAPIToken={config['token_id']}={secrets.get('token_secret', '')}"}
         start = time.perf_counter()
-        async with httpx.AsyncClient(
-            verify=bool(config.get("verify_tls", False)),
-            timeout=float(config.get("timeout") or 10),
-            transport=self._transport,
-        ) as client:
+        async with make_client({"verify_tls": False, **config}, transport=self._transport) as client:
             response = await client.get(f"{base}/api2/json/cluster/resources", headers=headers)
         latency = int((time.perf_counter() - start) * 1000)
 

@@ -13,7 +13,7 @@ from typing import Any
 import httpx
 
 from .base import CheckResult, Field, Integration
-from .util import human_speed
+from .util import human_speed, make_client
 
 
 class QuiIntegration(Integration):
@@ -35,12 +35,9 @@ class QuiIntegration(Integration):
 
     async def check(self, config: dict[str, Any], secrets: dict[str, str]) -> CheckResult:
         start = time.perf_counter()
-        async with httpx.AsyncClient(
-            base_url=str(config["url"]).rstrip("/"),
+        async with make_client(
+            config, transport=self._transport, base_url=str(config["url"]).rstrip("/"),
             headers={"X-API-Key": secrets.get("api_key", "")},
-            verify=bool(config.get("verify_tls", True)),
-            timeout=float(config.get("timeout") or 10),
-            transport=self._transport,
         ) as client:
             response = await client.get("/api/instances")
             if response.status_code in (401, 403):

@@ -50,6 +50,15 @@
         }
         select.addEventListener("change", function () { update(true); });
         update(false);
+
+        // Risky options (e.g. "Follow redirects") ask for confirmation before they can be ticked.
+        document.addEventListener("change", function (event) {
+          var box = event.target;
+          if (box.matches && box.matches("input[type=checkbox][data-confirm]") && box.checked
+              && !window.confirm(box.getAttribute("data-confirm"))) {
+            box.checked = false;
+          }
+        });
       })();
     </script>
     <div class="field">
@@ -69,7 +78,8 @@
     {% for f in cls.fields %}
     <div class="field">
       {% if f.kind == 'bool' %}
-        <label class="check"><input type="checkbox" name="{{ f.name }}" {% if values.get(f.name) %}checked{% endif %}> {{ f.label }}</label>
+        <label class="check"><input type="checkbox" name="{{ f.name }}" {% if values.get(f.name) %}checked{% endif %}
+          {% if f.confirm %}data-confirm="{{ f.confirm }}"{% endif %}> {{ f.label }}</label>
       {% elif f.kind == 'secret' %}
         <label>{{ f.label }}{% if f.required %} *{% endif %}
           <input type="password" name="{{ f.name }}" autocomplete="new-password"

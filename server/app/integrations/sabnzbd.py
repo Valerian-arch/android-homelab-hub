@@ -14,6 +14,7 @@ from typing import Any
 import httpx
 
 from .base import CheckResult, Field, Integration
+from .util import make_client
 
 QUEUE_LIMIT = 50
 FAILED_LIMIT = 5
@@ -76,8 +77,8 @@ class SabnzbdIntegration(Integration):
         try:
             payload = response.json()
         except ValueError:
-            # Older versions answer some errors in plain text.
-            raise SabnzbdError(response.text.strip()[:120] or "Unexpected response") from None
+            # Older versions answer some errors in plain text. (The poller redacts, then shortens.)
+            raise SabnzbdError(response.text.strip() or "Unexpected response") from None
         if isinstance(payload, dict) and payload.get("status") is False:
             raise SabnzbdError(str(payload.get("error") or "API error"))
         return payload
@@ -85,12 +86,7 @@ class SabnzbdIntegration(Integration):
     async def check(self, config: dict[str, Any], secrets: dict[str, str]) -> CheckResult:
         api_key = secrets.get("api_key", "")
         start = time.perf_counter()
-        async with httpx.AsyncClient(
-            base_url=str(config["url"]).rstrip("/"),
-            verify=bool(config.get("verify_tls", True)),
-            timeout=float(config.get("timeout") or 10),
-            transport=self._transport,
-        ) as client:
+        async with make_client(config, transport=self._transport, base_url=str(config["url"]).rstrip("/")) as client:
             try:
                 queue_payload, history_payload, warnings_payload = await asyncio.gather(
                     self._call(client, api_key, "queue", limit=QUEUE_LIMIT),

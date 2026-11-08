@@ -1,4 +1,4 @@
-"""Admin web UI: first-run setup, login, and service management."""
+"""Admin web UI: login, account/recovery, phones, and service management."""
 
 from __future__ import annotations
 
@@ -57,11 +57,57 @@ def current_session(request: Request) -> Session | None:
     return request.app.state.auth.get_session(token)
 
 
-def require_session(request: Request) -> Session:
+def require_login(request: Request) -> Session:
+    """Logged in. Used by the few pages allowed before the first password change."""
     session = current_session(request)
     if session is None:
         raise HTTPException(status_code=303, headers={"Location": "/login"})
     return session
+
+
+def require_session(request: Request) -> Session:
+    """Logged in AND the temporary password has been changed."""
+    session = require_login(request)
+    if request.app.state.auth.must_change_password():
+        raise HTTPException(status_code=303, headers={"Location": "/account/password"})
+    return session
+
+
+def is_same_site(request: Request) -> bool:
+    """Reject form posts coming from other websites (login lock-out / CSRF on public forms).
+
+    Browsers send Sec-Fetch-Site. Because this app uses ``Referrer-Policy: no-referrer``,
+    same-site form posts may carry ``Origin: null``, so Origin is only compared when it is real.
+    """
+    site = request.headers.get("sec-fetch-site")
+    if site:
+        return site in ("same-origin", "none")
+    origin = request.headers.get("origin")
+    if origin and origin != "null":
+        return urlsplit(origin).netloc.lower() == request.headers.get("host", "").lower()
+    return True
+
+
+def client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+async def check_password(request: Request, password: str) -> bool:
+    """Verify the admin password, at most two scrypt checks at a time."""
+    stored = request.app.state.auth.get_admin_hash()
+    if stored is None:
+        return False
+    async with request.app.state.password_check:
+        return await asyncio.to_thread(verify_password, password, stored)
+
+
+def set_session_cookie(request: Request, response: Response, token: str) -> None:
+    settings = request.app.state.settings
+    response.set_cookie(
+        SESSION_COOKIE, token,
+        max_age=settings.session_hours * 3600,
+        httponly=True, samesite="strict", secure=settings.secure_cookies, path="/",
+    )
 
 
 async def csrf_form(request: Request, session: Session) -> FormData:
@@ -114,63 +160,146 @@ def root() -> RedirectResponse:
 
 
 @router.get("/setup")
-def setup_page(request: Request) -> Response:
-    if request.app.state.auth.admin_exists():
-        return redirect("/login")
-    return render(request, "setup.html", error=None)
+def setup_page() -> RedirectResponse:
+    # Old first-run page. The admin password is now generated on first start (see the log).
+    return redirect("/login")
 
 
-@router.post("/setup")
-async def setup_submit(request: Request) -> Response:
-    auth = request.app.state.auth
-    if auth.admin_exists():
-        return redirect("/login")
-    form = await request.form()
-    password = str(form.get("password") or "")
-    error = validate_new_password(password, str(form.get("confirm") or ""))
-    if error:
-        return render(request, "setup.html", status_code=400, error=error)
-    password_hash = await asyncio.to_thread(hash_password, password)
-    auth.create_admin(password_hash)
-    return redirect("/login?setup=1")
+LOGIN_NOTICES = {
+    "recovered": "Password reset. Log in with your new password.",
+    "changed": "Password changed. Log in again.",
+}
+LOCKED_MESSAGE = "Too many failed attempts. Try again in 15 minutes."
+CROSS_SITE_MESSAGE = "This form must be submitted from the Hub's own page."
+
+
+def render_login(request: Request, status_code: int = 200, error: str | None = None) -> Response:
+    return render(
+        request, "login.html", status_code=status_code, error=error,
+        notice=LOGIN_NOTICES.get(request.query_params.get("msg", "")),
+        first_start=request.app.state.auth.must_change_password(),
+    )
 
 
 @router.get("/login")
 def login_page(request: Request) -> Response:
-    if not request.app.state.auth.admin_exists():
-        return redirect("/setup")
     if current_session(request):
         return redirect("/admin")
-    return render(request, "login.html", error=None, setup_done=request.query_params.get("setup") == "1")
+    return render_login(request)
 
 
 @router.post("/login")
 async def login_submit(request: Request) -> Response:
     state = request.app.state
-    client_ip = request.client.host if request.client else "unknown"
-    if state.login_limiter.is_locked(client_ip):
-        return render(request, "login.html", status_code=429, setup_done=False,
-                      error="Too many failed attempts. Wait a few minutes and try again.")
+    if not is_same_site(request):
+        return render_login(request, 403, CROSS_SITE_MESSAGE)
+    if not state.login_limiter.try_acquire(client_ip(request)):  # counted BEFORE checking
+        return render_login(request, 429, LOCKED_MESSAGE)
     form = await request.form()
-    password = str(form.get("password") or "")
-    stored = state.auth.get_admin_hash()
-    ok = stored is not None and await asyncio.to_thread(verify_password, password, stored)
-    if not ok:
-        state.login_limiter.record_failure(client_ip)
-        return render(request, "login.html", status_code=401, setup_done=False, error="Wrong password.")
-    state.login_limiter.reset(client_ip)
-    token = state.auth.create_session()
-    response = redirect("/admin")
-    response.set_cookie(
-        SESSION_COOKIE, token,
-        max_age=state.settings.session_hours * 3600,
-        httponly=True, samesite="strict", secure=state.settings.secure_cookies, path="/",
-    )
+    if not await check_password(request, str(form.get("password") or "")):
+        return render_login(request, 401, "Wrong password.")
+    state.login_limiter.reset(client_ip(request))
+    response = redirect("/account/password" if state.auth.must_change_password() else "/admin")
+    set_session_cookie(request, response, state.auth.create_session())
     return response
 
 
+@router.get("/recover")
+def recover_page(request: Request) -> Response:
+    return render(request, "recover.html", error=None)
+
+
+@router.post("/recover")
+async def recover_submit(request: Request) -> Response:
+    """Forgot password: one recovery code + a new password."""
+    state = request.app.state
+    if not is_same_site(request):
+        return render(request, "recover.html", status_code=403, error=CROSS_SITE_MESSAGE)
+    form = await request.form()
+    password = str(form.get("password") or "")
+    error = validate_new_password(password, str(form.get("confirm") or ""))
+    if error:
+        return render(request, "recover.html", status_code=400, error=error)
+    if not state.login_limiter.try_acquire(client_ip(request)):
+        return render(request, "recover.html", status_code=429, error=LOCKED_MESSAGE)
+    if not state.auth.use_recovery_code(str(form.get("code") or "")):
+        return render(request, "recover.html", status_code=401,
+                      error="That recovery code isn't valid or was already used.")
+    state.login_limiter.reset(client_ip(request))
+    state.auth.set_password(await asyncio.to_thread(hash_password, password), must_change=False)
+    state.auth.delete_other_sessions(None)  # log out everywhere
+    return redirect("/login?msg=recovered")
+
+
+# --- account -------------------------------------------------------------------------
+
+ACCOUNT_MESSAGES = {
+    "password": "Password changed. Other browsers were logged out.",
+    "others": "All other browser sessions were logged out.",
+}
+
+
+@router.get("/account")
+def account_page(request: Request, session: Session = Depends(require_session)) -> Response:
+    return render(
+        request, "account.html", session=session,
+        codes_left=request.app.state.auth.recovery_codes_left(),
+        message=ACCOUNT_MESSAGES.get(request.query_params.get("msg", "")),
+    )
+
+
+@router.get("/account/password")
+def password_page(request: Request, session: Session = Depends(require_login)) -> Response:
+    return render(request, "setup.html", session=session,
+                  forced=request.app.state.auth.must_change_password(), error=None)
+
+
+@router.post("/account/password")
+async def password_submit(request: Request, session: Session = Depends(require_login)) -> Response:
+    state = request.app.state
+    form = await csrf_form(request, session)
+    forced = state.auth.must_change_password()
+
+    def fail(status: int, error: str) -> Response:
+        return render(request, "setup.html", status_code=status, session=session, forced=forced, error=error)
+
+    current = str(form.get("current_password") or "")
+    new = str(form.get("password") or "")
+    error = validate_new_password(new, str(form.get("confirm") or ""))
+    if error:
+        return fail(400, error)
+    if new == current:
+        return fail(400, "The new password must be different from the current one.")
+    if not state.login_limiter.try_acquire(client_ip(request)):
+        return fail(429, LOCKED_MESSAGE)
+    if not await check_password(request, current):
+        return fail(401, "Current password is wrong.")
+    state.login_limiter.reset(client_ip(request))
+
+    state.auth.set_password(await asyncio.to_thread(hash_password, new), must_change=False)
+    state.auth.delete_other_sessions(session.token_hash)
+    if state.auth.recovery_codes_left() == 0:
+        return render(request, "recovery_codes.html", session=session,
+                      codes=state.auth.generate_recovery_codes(), first_time=True)
+    return redirect("/account?msg=password")
+
+
+@router.post("/account/recovery-codes")
+async def new_recovery_codes(request: Request, session: Session = Depends(require_session)) -> Response:
+    await csrf_form(request, session)
+    return render(request, "recovery_codes.html", session=session,
+                  codes=request.app.state.auth.generate_recovery_codes(), first_time=False)
+
+
+@router.post("/account/logout-others")
+async def logout_others(request: Request, session: Session = Depends(require_session)) -> Response:
+    await csrf_form(request, session)
+    request.app.state.auth.delete_other_sessions(session.token_hash)
+    return redirect("/account?msg=others")
+
+
 @router.post("/logout")
-async def logout(request: Request, session: Session = Depends(require_session)) -> Response:
+async def logout(request: Request, session: Session = Depends(require_login)) -> Response:
     await csrf_form(request, session)
     request.app.state.auth.delete_session(request.cookies[SESSION_COOKIE])
     response = redirect("/login")

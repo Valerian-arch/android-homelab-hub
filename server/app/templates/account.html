@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Account · Homelab Hub{% endblock %}
+{% block content %}
+{% if message %}<p class="notice">{{ message }}</p>{% endif %}
+<h1>Account</h1>
+
+<section class="card account-section">
+  <h2 class="flush">Password</h2>
+  <p class="muted">Changing it logs out every other browser.</p>
+  <a class="button" href="/account/password">Change password</a>
+</section>
+
+<section class="card account-section">
+  <h2 class="flush">Recovery codes</h2>
+  <p>{% if codes_left %}You have <strong>{{ codes_left }}</strong> unused recovery code{{ 's' if codes_left != 1 }}.
+     {% else %}<span class="problem">You have no recovery codes.</span> Create some so you can't get locked out.{% endif %}</p>
+  <form method="post" action="/account/recovery-codes"
+        {% if codes_left %}onsubmit="return confirm('Create new codes? Your current codes will stop working.');"{% endif %}>
+    <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+    <button type="submit" class="secondary">Create new recovery codes</button>
+  </form>
+</section>
+
+<section class="card account-section">
+  <h2 class="flush">Sessions</h2>
+  <p class="muted">Log out every browser except this one. Paired phones are managed on the <a href="/admin/phones">Phones</a> page.</p>
+  <form method="post" action="/account/logout-others">
+    <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+    <button type="submit" class="secondary">Log out other sessions</button>
+  </form>
+</section>
+{% endblock %}

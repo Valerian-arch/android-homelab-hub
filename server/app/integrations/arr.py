@@ -15,6 +15,7 @@ from typing import Any, ClassVar
 import httpx
 
 from .base import CheckResult, Field, Integration
+from .util import make_client
 
 QUEUE_LIMIT = 50
 UPCOMING_LIMIT = 25
@@ -106,12 +107,10 @@ class _ArrBase(Integration):
     async def check(self, config: dict[str, Any], secrets: dict[str, str]) -> CheckResult:
         base = str(config["url"]).rstrip("/")
         start = time.perf_counter()
-        async with httpx.AsyncClient(
+        async with make_client(
+            config, transport=self._transport,
             base_url=f"{base}/api/{self.api_version}",
             headers={"X-Api-Key": secrets.get("api_key", "")},
-            verify=bool(config.get("verify_tls", True)),
-            timeout=float(config.get("timeout") or 10),
-            transport=self._transport,
         ) as client:
             response = await client.get("/system/status")
             latency = int((time.perf_counter() - start) * 1000)

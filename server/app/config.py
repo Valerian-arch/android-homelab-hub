@@ -24,6 +24,8 @@ class Settings:
     """Set true when the Hub is served over HTTPS."""
     session_hours: int
     """How long an admin login lasts."""
+    initial_admin_password: str | None = None
+    """First-run admin password. If unset, a random one is generated and printed to the log."""
 
 
 def load_settings() -> Settings:
@@ -32,4 +34,5 @@ def load_settings() -> Settings:
         poll_interval=max(10, int(os.environ.get("HUB_POLL_INTERVAL", "60"))),
         secure_cookies=_bool_env("HUB_SECURE_COOKIES", False),
         session_hours=max(1, int(os.environ.get("HUB_SESSION_HOURS", "12"))),
+        initial_admin_password=os.environ.get("HUB_INITIAL_ADMIN_PASSWORD") or None,
     )

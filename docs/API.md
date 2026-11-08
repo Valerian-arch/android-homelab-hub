@@ -1,7 +1,10 @@
 # Phone API (v1)
 
 The Android app talks to the Hub only through these endpoints. All responses are JSON.
-The API is **read-only**: no endpoint changes services or exposes credentials.
+
+- **No endpoint changes your services.** The only state a phone can change is its own pairing (`/pair`, `/unpair`).
+- **No credentials are ever returned.** API keys and passwords stay encrypted on the Hub, and URLs containing a username or password are rejected when a service is saved.
+- **The dashboard does contain homelab details:** service names and addresses, download and torrent names, Jellyfin usernames and what they're watching, and error messages. Anyone holding a phone's token can read that, so **remove a lost phone** on the Hub (Phones → Remove).
 
 ## Pairing
 
@@ -81,10 +84,13 @@ Authorization: Bearer <device token>
 | `proxmox` | `nodes[]` (name, status, cpu_pct, mem_used, mem_total, mem_pct, uptime), `guests[]` (vmid, name, type, node, status, cpu_pct, mem_used, mem_total, mem_pct) |
 | `sonarr`, `radarr` | `version`, `health[]`, `queue[]` (title, status, state, progress, timeleft, problem), `queue_total`, `upcoming[]` (title, date, kind, has_file) |
 | `prowlarr` | `version`, `health[]`, `indexers[]` (name, enabled, protocol, failing, disabled_until) |
-| `sabnzbd` | `paused`, `speed`, `timeleft`, `queue[]`, `queue_total`, `failed[]`, `failed_total`, `warnings[]`, `disk_free_gb` |
+| `sabnzbd` | `version`, `paused`, `speed`, `timeleft`, `queue[]`, `queue_total`, `failed[]`, `failed_total`, `warnings[]`, `disk_free_gb` |
 | `nzbget`, `qbittorrent` | `download_speed`, `upload_speed`, `paused`, `queue[]` (name, status, progress, speed, timeleft, category), `queue_total`, `failed[]`, `failed_total` |
 | `qui` | `instances[]` (name, connected, error, download_speed, upload_speed, connection), `download_speed`, `upload_speed` |
 | `jellyfin` | `server`, `version`, `streams[]` (user, device, client, title, progress, paused, method, transcoding), `counts` |
 | `http`, `tcp` | `{}` |
 
 The Hub refreshes results every `poll_interval` seconds, so the app doesn't need to poll faster than that.
+
+Limits: text values in `data` are capped at 500 characters, lists at 200 items, and `message` at 300 characters.
+Any saved secret that appears in a message or in `data` is replaced with `***` before it is stored.

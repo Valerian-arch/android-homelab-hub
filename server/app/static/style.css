@@ -130,6 +130,13 @@ form.inline { display: inline; margin: 0; }
 .type-card { display: flex; flex-direction: column; gap: 4px; color: var(--text); text-decoration: none; }
 .type-card:hover { border-color: var(--accent); }
 
+/* Account */
+.account-section { margin-bottom: 16px; }
+.recovery-codes { font-size: 1.15rem; line-height: 2; }
+.recovery-codes code { letter-spacing: 0.08em; }
+.small-link { margin-top: 12px; font-size: 0.9rem; }
+code { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
 /* Phones / pairing */
 .flush { margin-top: 0; }
 .service.phone { grid-template-columns: 1fr auto; }

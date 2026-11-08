@@ -19,8 +19,22 @@ class ParsedForm:
 
 
 def is_http_url(value: str) -> bool:
+    try:
+        parts = urlsplit(value)
+        parts.port  # noqa: B018 - raises ValueError for an invalid port
+    except ValueError:
+        return False
+    return parts.scheme in ("http", "https") and bool(parts.hostname)
+
+
+def has_credentials(value: str) -> bool:
+    """True for URLs like http://user:pass@host. Those would be stored and shown unencrypted."""
     parts = urlsplit(value)
-    return parts.scheme in ("http", "https") and bool(parts.netloc)
+    return bool(parts.username or parts.password)
+
+
+CREDENTIALS_IN_URL = ("{label} must not contain a username or password. "
+                      "Use the separate login fields (they are stored encrypted).")
 
 
 def default_config(cls: type[Integration]) -> dict[str, Any]:
@@ -73,6 +87,8 @@ def parse_service_form(
         errors.append("Category must be 50 characters or fewer.")
     if link_url and not is_http_url(link_url):
         errors.append("Link URL must start with http:// or https://.")
+    elif link_url and has_credentials(link_url):
+        errors.append(CREDENTIALS_IN_URL.format(label="Link URL"))
     common = {
         "name": name,
         "category": category,
@@ -110,6 +126,9 @@ def parse_service_form(
         elif f.kind == "url":
             if not is_http_url(raw):
                 errors.append(f"{f.label} must start with http:// or https://.")
+                field_errors = True
+            elif has_credentials(raw):
+                errors.append(CREDENTIALS_IN_URL.format(label=f.label))
                 field_errors = True
             config[f.name] = raw
         else:

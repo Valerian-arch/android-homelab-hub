@@ -3,7 +3,13 @@
 {% block content %}
 <section class="card narrow">
   <h1>Log in</h1>
-  {% if setup_done %}<p class="notice">Admin created. Log in to continue.</p>{% endif %}
+  {% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
+  {% if first_start %}
+  <p class="notice">
+    <strong>First start?</strong> A temporary admin password was printed in the Hub's log.
+    With Docker: <code>docker logs homelab-hub</code>. You'll be asked to change it after logging in.
+  </p>
+  {% endif %}
   {% if error %}<div class="errors">{{ error }}</div>{% endif %}
   <form method="post" action="/login" class="form">
     <label>Admin password
@@ -11,5 +17,6 @@
     </label>
     <div class="buttons"><button type="submit">Log in</button></div>
   </form>
+  <p class="muted small-link"><a href="/recover">Forgot password? Use a recovery code</a></p>
 </section>
 {% endblock %}

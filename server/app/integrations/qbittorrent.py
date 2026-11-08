@@ -9,7 +9,7 @@ from typing import Any
 import httpx
 
 from .base import CheckResult, Field, Integration
-from .util import human_eta, human_speed
+from .util import human_eta, human_speed, make_client
 
 QUEUE_LIMIT = 50
 FAILED_LIMIT = 10
@@ -42,12 +42,9 @@ class QbittorrentIntegration(Integration):
         def elapsed() -> int:
             return int((time.perf_counter() - start) * 1000)
 
-        async with httpx.AsyncClient(
-            base_url=base,
+        async with make_client(
+            config, transport=self._transport, base_url=base,
             headers={"Referer": base},  # qBittorrent's CSRF check compares Referer/Origin with the host
-            verify=bool(config.get("verify_tls", True)),
-            timeout=float(config.get("timeout") or 10),
-            transport=self._transport,
         ) as client:
             username = str(config.get("username") or "").strip()
             if username:

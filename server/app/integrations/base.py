@@ -26,6 +26,8 @@ class Field:
     help: str = ""
     min_value: int | None = None
     max_value: int | None = None
+    confirm: str = ""
+    """For bool fields: warning the user must confirm before ticking the box."""
 
     @property
     def secret(self) -> bool:
