@@ -1,0 +1,5 @@
+<resources>
+    <!-- The UI is drawn entirely by Jetpack Compose (see ui/theme/Theme.kt). This XML theme only
+         covers the moment before Compose starts, so it has no action bar (Compose draws its own top bar). -->
+    <style name="Theme.HomelabHub" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
+</resources>

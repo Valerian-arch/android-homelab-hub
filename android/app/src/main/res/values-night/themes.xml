@@ -1,0 +1,4 @@
+<resources>
+    <!-- Same as values/themes.xml; DayNight already switches to dark colours. -->
+    <style name="Theme.HomelabHub" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
+</resources>

@@ -10,9 +10,10 @@
 *.key
 *.pem
 secrets/
-config/
-!config.example/
-data/
+# Hub runtime data (hub.db + secret.key). Anchored to server/ so it doesn't
+# also hide source folders that happen to be named "data" (e.g. the app's data package).
+/server/data/
+/server/config/
 *.db
 *.sqlite
 *.sqlite3

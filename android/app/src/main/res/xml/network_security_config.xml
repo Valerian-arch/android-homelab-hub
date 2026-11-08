@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Homelab Hubs usually run on a LAN address over plain http:// (often reached through a VPN such as
+  Tailscale, which encrypts the traffic anyway), so cleartext must be allowed. The app warns when the
+  Hub address is http://. "user" certificates let people who run their own CA use https:// on the LAN.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
