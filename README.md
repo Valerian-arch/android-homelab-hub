@@ -45,4 +45,7 @@ docs/      Plan, setup guide, API reference
 
 ## License
 
-To be decided before the first public release.
+[GNU General Public License v3.0](LICENSE). This covers both the Hub (`server/`) and the Android app (`android/`).
+
+You're free to use, study, change, and share it. If you distribute a modified version, it must also be
+released under the GPL-3.0 with its source code. Running the Hub and the app for yourself carries no obligations.
