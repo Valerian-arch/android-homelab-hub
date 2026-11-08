@@ -62,5 +62,5 @@ An Android app that shows all of a user's homelab devices and services in one pl
 ## Before going public
 
 - ~~Choose a license.~~ GPL-3.0 (chosen 2026-11-08).
-- Write a setup guide for new users.
-- Audit the git history for any committed secrets or personal details.
+- ~~Write a setup guide for new users.~~ [SETUP.md](SETUP.md) (2026-11-08).
+- ~~Audit the git history for any committed secrets or personal details.~~ Done 2026-11-08. No keys, tokens, passwords, databases, or personal paths have ever been committed, and the only author is the GitHub noreply address. Two Android test files contained example private LAN addresses; they were replaced with generic ones.

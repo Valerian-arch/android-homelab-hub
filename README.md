@@ -2,7 +2,10 @@
 
 A self-hosted **Hub** plus an **Android app** that show all your homelab devices and services in one place.
 
-> **Status:** early development. Not ready for use yet.
+> **Status:** early release (v0.1). Working, and feedback welcome. Please [open an issue](https://github.com/Valerian-arch/android-homelab-hub/issues) for bugs or ideas.
+
+**Get started:** follow the **[setup guide](docs/SETUP.md)** (about 15 minutes).
+**Download the app:** [latest release](https://github.com/Valerian-arch/android-homelab-hub/releases/latest).
 
 ## How it works
 
@@ -17,17 +20,19 @@ Android app ──(your LAN or VPN, e.g. Tailscale)──► Homelab Hub ──�
 - **Read-only.** The first version only *shows* status. It never changes anything on your services.
 - **Bring your own services.** Nothing is hard-coded. Add only the services you run.
 
-## Planned integrations (v1)
+## Integrations
 
 | Integration | Shows |
 |---|---|
 | Proxmox VE | Node and VM/LXC status, CPU, RAM |
-| TrueNAS SCALE | Pool health, storage use |
-| Pi-hole | Queries, blocked count, status |
-| Sonarr / Radarr / Prowlarr | Queue, upcoming, health warnings |
-| SABnzbd | Speed, queue |
-| Jellyfin | Server status, active streams |
-| Generic HTTP / ping | Up/down for anything else |
+| Sonarr / Radarr | Queue, upcoming, health warnings |
+| Prowlarr | Enabled/failing indexers, health |
+| SABnzbd / NZBGet | Speed, queue, failures |
+| qBittorrent / qui | Speeds, downloads, errored torrents, instances |
+| Jellyfin | Active streams, transcoding, library size |
+| HTTP(S) / TCP check | Up/down for anything else |
+
+Planned: TrueNAS SCALE, Pi-hole, and a generic "Custom API" type.
 
 ## Repository layout
 

@@ -13,8 +13,8 @@ class PairingLinksTest {
     @Test
     fun parsesHubQrCode() {
         // Exactly what the Hub's Phones page encodes (urlencode of url + code).
-        val link = PairingLinks.parse("homelabhub://pair?url=http%3A%2F%2F192.168.0.149%3A8080&code=ABCD-EFGH")
-        assertEquals(PairingLink("http://192.168.0.149:8080", "ABCD-EFGH"), link)
+        val link = PairingLinks.parse("homelabhub://pair?url=http%3A%2F%2F192.168.1.50%3A8080&code=ABCD-EFGH")
+        assertEquals(PairingLink("http://192.168.1.50:8080", "ABCD-EFGH"), link)
     }
 
     @Test
@@ -28,7 +28,7 @@ class PairingLinksTest {
 
     @Test
     fun normalizesTypedAddresses() {
-        assertEquals("http://192.168.0.149:8080", PairingLinks.normalizeHubUrl(" 192.168.0.149:8080/ "))
+        assertEquals("http://192.168.1.50:8080", PairingLinks.normalizeHubUrl(" 192.168.1.50:8080/ "))
         assertEquals("https://hub.example.lan", PairingLinks.normalizeHubUrl("https://hub.example.lan"))
         assertNull(PairingLinks.normalizeHubUrl(""))
         assertNull(PairingLinks.normalizeHubUrl("http://user:pass@hub.lan")) // no credentials in URLs

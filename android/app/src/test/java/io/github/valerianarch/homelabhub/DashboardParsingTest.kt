@@ -19,7 +19,7 @@ class DashboardParsingTest {
           "categories": ["Infrastructure", ""],
           "services": [
             {"id": 2, "name": "Proxmox", "type": "proxmox", "type_label": "Proxmox VE", "category": "Infrastructure",
-             "link_url": "https://192.168.0.239:8006", "status": "up", "message": "4/4 nodes online",
+             "link_url": "https://192.168.1.20:8006", "status": "up", "message": "4/4 nodes online",
              "latency_ms": 299, "checked_at": "2026-11-08T17:00:00+00:00",
              "data": {"nodes": [{"name": "pve1", "mem_total": 15600000000, "cpu_pct": 3.9}], "guests": []}},
             {"id": 3, "name": "Old", "type": "http", "type_label": "HTTP(S) check", "category": "",
