@@ -31,11 +31,12 @@ python -m app.admin_cli reset-password                                # local, f
 
 ## Run with Docker
 
-```sh
-cd server
-cp docker-compose.example.yml docker-compose.yml   # then edit the volume path
-docker compose up -d --build
-```
+A ready-made image is published for `amd64` and `arm64`:
+`ghcr.io/valerian-arch/android-homelab-hub:latest`. It is built automatically, and only after the tests pass.
+
+Use [`docker-compose.example.yml`](docker-compose.example.yml): paste it into Dockge or Portainer, or run it with
+`docker compose up -d`. Create the data folder first; the command is in the file's comments.
+To update, pull the new image (Dockge: **Update**). Your data in the volume is kept.
 
 ## Configuration
 
