@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+{% if message %}<p class="notice">{{ message }}</p>{% endif %}
+<div class="header-row">
+  <h1>Services</h1>
+  <a class="button" href="/admin/services/new">+ Add service</a>
+</div>
+
+{% if not groups %}
+<p class="empty">No services yet. <a href="/admin/services/new">Add your first service</a>.</p>
+{% endif %}
+
+{% for category, services in groups %}
+<section class="group">
+  <h2>{{ category }}</h2>
+  <ul class="service-list">
+    {% for svc in services %}
+    {% set r = results.get(svc.id) %}
+    <li class="service">
+      <div class="status">
+        {% if not svc.enabled %}<span class="dot disabled"></span> Paused
+        {% elif r %}<span class="dot {{ r.status }}"></span> {{ r.status|capitalize }}
+        {% else %}<span class="dot unknown"></span> Pending
+        {% endif %}
+      </div>
+      <div class="info">
+        <strong>
+          {% if svc.link_url %}<a href="{{ svc.link_url }}" target="_blank" rel="noopener noreferrer">{{ svc.name }}</a>
+          {% else %}{{ svc.name }}{% endif %}
+        </strong>
+        <small>{{ labels.get(svc.type, svc.type) }}</small>
+        {% if not svc.enabled %}
+        <small class="muted">Not checked automatically. Edit and tick "Monitor automatically" to resume.</small>
+        {% endif %}
+        {% if r %}
+        <small class="muted">
+          {% if not svc.enabled %}Last manual test: {% endif %}
+          {{ r.message }}{% if r.latency_ms is not none %} · {{ r.latency_ms }} ms{% endif %}
+          · {{ r.checked_at.strftime('%H:%M:%S') }} UTC
+        </small>
+        {% endif %}
+      </div>
+      <div class="actions">
+        <form method="post" action="/admin/services/{{ svc.id }}/test" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+          <button type="submit" class="secondary">Test</button>
+        </form>
+        <a class="button secondary" href="/admin/services/{{ svc.id }}/edit">Edit</a>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+{% endblock %}

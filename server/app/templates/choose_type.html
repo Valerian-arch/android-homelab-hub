@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Add service · Homelab Hub{% endblock %}
+{% block content %}
+<h1>Add a service</h1>
+<p class="muted">Choose what kind of service this is.</p>
+<ul class="type-list">
+  {% for cls in integrations %}
+  <li>
+    <a class="card type-card" href="/admin/services/new?type={{ cls.type }}">
+      <strong>{{ cls.label }}</strong>
+      <span class="muted">{{ cls.description }}</span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}
